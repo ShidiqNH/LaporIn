@@ -16,7 +16,6 @@
         
         .navbar { background: white; border-bottom: 1px solid #e2e8f0; }
         
-        /* Map Container */
         #map { 
             height: 550px; 
             width: 100%; 
@@ -25,7 +24,6 @@
             z-index: 1;
         }
 
-        /* Sidebar List */
         .report-side-card {
             background: white;
             border-radius: 20px;
@@ -78,7 +76,8 @@
             text-decoration: none;
             display: block;
             text-align: center;
-            padding: 5px 0;
+            padding: 8px 0;
+            font-weight: 600;
         }
         
         /* Custom Scrollbar */
@@ -104,7 +103,7 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h4 class="fw-bold m-0 text-dark">Sebaran Kerusakan</h4>
                 <div class="badge bg-primary px-3 py-2 rounded-pill shadow-sm">
-                    <i class="bi bi-geo-alt-fill me-1"></i> Mode Navigasi
+                    <i class="bi bi-geo-alt-fill me-1"></i> Mode Pemantauan Real-time
                 </div>
             </div>
             <div id="map"></div>
@@ -114,14 +113,14 @@
             <h4 class="fw-bold mb-3">Titik Laporan</h4>
             <div class="card report-side-card shadow-sm p-3">
                 <div class="list-group list-group-flush">
-                    <% if (reports.length > 0) { %>
+                    <% if (locals.reports && reports.length > 0) { %>
                         <% reports.forEach(r => { %>
                             <div class="list-group-item p-3 shadow-sm" onclick="focusMarker('<%= r.latitude %>', '<%= r.longitude %>')">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <h6 class="fw-bold mb-1 text-dark"><%= r.title %></h6>
                                     <% 
-                                        let dotColor = '#f59e0b'; // Pending (Oranye)
-                                        if(r.status === 'Selesai') dotColor = '#10b981'; // Selesai (Hijau)
+                                        let dotColor = '#f59e0b'; // Pending
+                                        if(r.status === 'Selesai') dotColor = '#10b981'; // Selesai
                                     %>
                                     <span class="status-dot" style="background-color: <%= dotColor %>;" title="<%= r.status %>"></span>
                                 </div>
@@ -151,16 +150,16 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // 1. Inisialisasi Peta (Default View Indonesia)
+    // 1. Inisialisasi Peta
     const map = L.map('map').setView([-2.5489, 118.0149], 5);
 
     // 2. Tile Layer (OpenStreetMap)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
 
-    // 3. Parsing Data dari Server (Mengambil data RDS yang dikirim app.js)
-    const reports = <%- JSON.stringify(reports) %>;
+    // 3. Parsing Data dari Server (Aman dengan fallback array kosong)
+    const reports = <%- JSON.stringify(locals.reports || []) %>;
     const markers = {};
 
     // 4. Looping untuk membuat Marker
@@ -171,19 +170,18 @@
 
             const marker = L.marker([lat, lng]).addTo(map);
             
-            // Simpan marker ke objek berdasarkan koordinat untuk fungsi focus
             markers[`${lat},${lng}`] = marker;
 
-            // Template Popup: Gambar menggunakan URL CDN dari database
+            // Template Popup
             const popupContent = `
-                <div style="width: 180px;">
+                <div style="width: 180px; font-family: 'Inter', sans-serif;">
                     <img src="${r.image_url}" class="popup-img" alt="${r.title}">
                     <h6 style="margin: 0 0 5px 0; font-weight: bold; color: #1e293b;">${r.title}</h6>
                     <div style="display: flex; align-items: center; margin-bottom: 10px;">
                         <span style="height: 8px; width: 8px; border-radius: 50%; background: ${r.status === 'Selesai' ? '#10b981' : '#f59e0b'}; display: inline-block; margin-right: 5px;"></span>
                         <span style="font-size: 11px; color: #64748b;">${r.status}</span>
                     </div>
-                    <a href="/reports/${r.id}" class="btn-detail-popup">Lihat Detail Laporan</a>
+                    <a href="/reports/${r.id}" class="btn-detail-popup">Buka Detail</a>
                 </div>
             `;
             marker.bindPopup(popupContent);
