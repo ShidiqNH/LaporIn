@@ -1,4 +1,5 @@
 const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3');
+const crypto = require('crypto'); // Tambahkan ini untuk generate string unik
 require('dotenv').config();
 
 const s3Client = new S3Client({
@@ -10,11 +11,15 @@ const s3Client = new S3Client({
 });
 
 /**
- * Fungsi untuk upload buffer multer ke S3
+ * Fungsi untuk upload buffer multer ke S3 dengan nama unik
  * @returns URL CDN (CloudFront/Cloudflare)
  */
 const uploadToS3 = async (file) => {
-    const fileName = `uploads/${Date.now()}-${file.originalname}`;
+    const fileExtension = file.originalname.split('.').pop();
+
+    const uniqueSuffix = crypto.randomBytes(4).toString('hex');
+    const fileName = `uploads/${Date.now()}-${uniqueSuffix}.${fileExtension}`;
+
     const command = new PutObjectCommand({
         Bucket: process.env.S3_BUCKET_NAME,
         Key: fileName,
@@ -22,10 +27,14 @@ const uploadToS3 = async (file) => {
         ContentType: file.mimetype,
     });
 
-    await s3Client.send(command);
-    
-    // Return URL via CDN sesuai aturan ETS
-    return `${process.env.CDN_DOMAIN}/${fileName}`;
+    try {
+        await s3Client.send(command);
+        
+        return `${process.env.CDN_DOMAIN}/${fileName}`;
+    } catch (error) {
+        console.error("Error upload ke S3:", error);
+        throw error;
+    }
 };
 
 module.exports = { uploadToS3 };
